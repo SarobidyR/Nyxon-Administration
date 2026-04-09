@@ -1,0 +1,15 @@
+backend/src/
+├── app.js                          ← serveur Express, toutes les routes montées
+├── config/
+│   └── db.js                       ← pool PostgreSQL + withTransaction()
+├── middlewares/
+│   ├── auth.js                     ← authenticate + authorize(roles) + generateTokens
+│   ├── errorHandler.js             ← gestion erreurs globale (PG, JWT, custom)
+│   └── validate.js                 ← express-validator result handler
+└── modules/
+    ├── auth/       routes · service · controller   (register/login/refresh/logout/me)
+    ├── produits/   routes · service · controller   (CRUD + alertes stock)
+    ├── clients/    routes · service · controller   (CRUD + top clients)
+    ├── fournisseurs/ routes · service · controller (CRUD)
+    ├── marques/    routes · service · controller   (CRUD + soft delete si produits liés)
+    └── categories/ routes · service · controller   (CRUD + arbre hiérarchique + anti-cycle)
