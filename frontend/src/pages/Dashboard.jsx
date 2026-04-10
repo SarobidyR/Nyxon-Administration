@@ -124,7 +124,7 @@ export default function Dashboard() {
             Bonjour, {user?.prenom} 👋
           </h2>
           <p className="page-subtitle">
-            {new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' })}
+            {new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
           </p>
         </div>
         <button onClick={fetchDashboard} className="btn-secondary" title="Rafraîchir">
