@@ -197,6 +197,11 @@ export const categoriesApi = {
   updateOrdre:  (id, ordre)     => api.patch(`/categories/${id}/ordre`, { ordre }),
 };
 
+// ── API KPIS ────────────────────────────────────────────
+export const kpisApi = {
+  dashboard: () => api.get('/kpis/dashboard'),
+};
+
 // ── TokenStorage exposé pour le store Zustand ─────────────────
 export { TokenStorage };
 

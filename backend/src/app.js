@@ -20,6 +20,9 @@ const categoriesRoutes  = require('./modules/categories/routes');
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
+const kpisRoutes = require('./modules/kpis/routes');
+app.use('/api/kpis', kpisRoutes);
+
 // ── Sécurité & parsing ──────────────────────────────────────
 app.use(helmet());
 app.use(cors({
