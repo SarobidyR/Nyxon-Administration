@@ -35,6 +35,13 @@ const MarquesForm    = lazy(() => import('./pages/marques/MarquesForm'));
 // ── Catégories ────────────────────────────────────────────────
 const CategoriesList = lazy(() => import('./pages/categories/CategoriesList'));
 
+// ── Commandes ────────────────────────────────────────────────
+const CommandesList = lazy(()=> import('./pages/commandes/CommandesList'));
+const CommandeDetail = lazy(()=> import('./pages/commandes/CommandesDetail'));
+
+// ── Stock ────────────────────────────────────────────────
+const StockMouvements = lazy(()=> import('./pages/stock/StockMouvements'));
+
 // ── Hiérarchie des rôles (même ordre que le backend) ─────────
 const ROLE_HIERARCHY = {
   superadmin: 5,
@@ -149,8 +156,20 @@ export default function App() {
                 <Route path="categories">
                   <Route index            element={<CategoriesList />} />
                 </Route>
-              </Route>
+                </Route>
 
+                {/* Commandes */}
+                <Route element={<RoleGuard role="manager" />}>
+                  <Route path="commandes">
+                    <Route index       element={<CommandesList />} />
+                    <Route path=":id"  element={<CommandeDetail />} />
+                  </Route>
+                </Route>
+
+                  {/* Stock */}
+                <Route element={<RoleGuard role="manager" />}>
+                  <Route path="stock" element={<StockMouvements />} />
+                </Route>
             </Route>{/* fin Layout */}
           </Route>{/* fin RequireAuth */}
 
