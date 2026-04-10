@@ -116,7 +116,7 @@ const getOne = async (id) => {
 
 // ── CREATE ────────────────────────────────────────────────────
 const create = async (data, userId) => {
-    return withTransaction(async, (client) => {
+    return withTransaction(async (client) => {
         const {
         type = 'vente', client_id, lignes, remise_pct = 0,
         frais_livraison = 0, paiement_mode, notes, notes_internes,
@@ -155,5 +155,225 @@ const create = async (data, userId) => {
         };
     });
 
+    const { lignesCalculees, sous_total_ht, remise_montant, total_ht, total_tva, total_ttc } =
+      calculerTotaux(lignesEnrichies, remise_pct, frais_livraison);
+      
+    // Insérer la commande
+    const { rows: [cmd] } = await client.query(
+      `INSERT INTO commandes
+         (type, client_id, vendeur_id, sous_total_ht, remise_pct, remise_montant,
+          total_ht, total_tva, frais_livraison, total_ttc, paiement_mode,
+          notes, notes_internes, adresse_livraison, date_disponibilite, acompte_verse, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+       RETURNING *`,
+      [type, client_id || null, userId, sous_total_ht, remise_pct, remise_montant,
+       total_ht, total_tva, frais_livraison, total_ttc, paiement_mode || null,
+       notes || null, notes_internes || null, adresse_livraison || null,
+       date_disponibilite || null, acompte_verse || null, userId]
+    );
+
+    // Insérer les lignes
+    for (const l of lignesCalculees) {
+      await client.query(
+        `INSERT INTO commande_lignes
+           (commande_id, produit_id, variante_id, produit_nom, produit_ref,
+            quantite, prix_unitaire_ht, tva_taux, remise_pct, total_ht, total_ttc)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [cmd.id, l.produit_id, l.variante_id || null, l.produit_nom, l.produit_ref,
+         l.quantite, l.prix_unitaire_ht, l.tva_taux, l.remise_pct || 0, l.total_ht, l.total_ttc]
+      );
+    }
+
+    // Historique initial
+    await client.query(
+      `INSERT INTO commande_historique (commande_id, statut, commentaire, created_by)
+       VALUES ($1, 'brouillon', 'Commande créée', $2)`,
+      [cmd.id, userId]
+    );
+
+    // Déduire le stock si vente
+    if(type === 'vente'){
+        for (const l of lignesCalculees){
+        const p= produitsMap[l.produit_id];
+        const stockApres = p.stock_actuel - l.quantite;
+            await client.query(
+            `INSERT INTO stock_mouvements
+            (produit_id, type, quantite, stock_avant, stock_apres, commande_id, created_by)
+            VALUES ($1, 'sortie_vente', $2, $3, $4, $5, $6)`,
+            [l.produit_id, -l.quantite, p.stock_actuel, stockApres, cmd.id, userId]
+            );
+        }
+    }
+
+    return cmd;
     });
-}
+};
+
+// ── UPDATE ────────────────────────────────────────────────────
+const update = async (id, data, userId) => {
+  const { rows: [existing] } = await query('SELECT statut FROM commandes WHERE id=$1', [id]);
+  if (!existing) { const e = new Error('Commande introuvable'); e.statusCode = 404; throw e; }
+  if (existing.statut !== 'brouillon') {
+    const e = new Error('Seules les commandes en brouillon peuvent être modifiées');
+    e.statusCode = 409; throw e;
+  }
+ 
+  return withTransaction(async (client) => {
+    const {
+      client_id, lignes, remise_pct = 0, frais_livraison = 0,
+      paiement_mode, notes, notes_internes, adresse_livraison,
+    } = data;
+ 
+    // Récupérer infos produits
+    const produitsIds = [...new Set(lignes.map((l) => l.produit_id))];
+    const { rows: produits } = await client.query(
+      `SELECT id, nom, reference, prix_vente_ht, tva_taux FROM produits WHERE id = ANY($1)`,
+      [produitsIds]
+    );
+    const produitsMap = Object.fromEntries(produits.map((p) => [p.id, p]));
+ 
+    const lignesEnrichies = lignes.map((l) => {
+      const p = produitsMap[l.produit_id];
+      return {
+        ...l,
+        produit_nom:      p?.nom || '',
+        produit_ref:      p?.reference || '',
+        tva_taux:         l.tva_taux ?? p?.tva_taux ?? 20,
+        prix_unitaire_ht: l.prix_unitaire_ht ?? p?.prix_vente_ht ?? 0,
+      };
+    });
+ 
+    const { lignesCalculees, sous_total_ht, remise_montant, total_ht, total_tva, total_ttc } =
+      calculerTotaux(lignesEnrichies, remise_pct, frais_livraison);
+ 
+    // Supprimer anciennes lignes
+    await client.query('DELETE FROM commande_lignes WHERE commande_id = $1', [id]);
+ 
+    // Remettre les nouvelles
+    for (const l of lignesCalculees) {
+      await client.query(
+        `INSERT INTO commande_lignes
+           (commande_id, produit_id, produit_nom, produit_ref,
+            quantite, prix_unitaire_ht, tva_taux, remise_pct, total_ht, total_ttc)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [id, l.produit_id, l.produit_nom, l.produit_ref,
+         l.quantite, l.prix_unitaire_ht, l.tva_taux,
+         l.remise_pct || 0, l.total_ht, l.total_ttc]
+      );
+    }
+ 
+    const { rows: [cmd] } = await client.query(
+      `UPDATE commandes SET
+         client_id=$1, sous_total_ht=$2, remise_pct=$3, remise_montant=$4,
+         total_ht=$5, total_tva=$6, frais_livraison=$7, total_ttc=$8,
+         paiement_mode=$9, notes=$10, notes_internes=$11, adresse_livraison=$12
+       WHERE id=$13 RETURNING *`,
+      [client_id || null, sous_total_ht, remise_pct, remise_montant,
+       total_ht, total_tva, frais_livraison, total_ttc,
+       paiement_mode || null, notes || null, notes_internes || null,
+       adresse_livraison || null, id]
+    );
+ 
+    return cmd;
+  });
+};
+ 
+// ── TRANSITION DE STATUT ──────────────────────────────────────
+const updateStatut = async (id, newStatut, commentaire, userId) =>{
+    const { rows: [cmd] } = await query('SELECT * FROM commandes WHERE id=$1', [id]);
+    if (!cmd) { const e = new Error('Commande introuvable'); e.statusCode = 404; throw e; }
+
+    if (!canTransition(cmd.statut, newStatut)) {
+    const e = new Error(
+      `Transition impossible : ${cmd.statut} → ${newStatut}. ` +
+      `Transitions valides : ${TRANSITIONS[cmd.statut]?.join(', ') || 'aucune'}`
+    );
+    e.statusCode = 409; throw e;
+  }
+
+  return withTransaction(async (client) =>{
+    // Champs timestamps selon statut
+    const tsField = {
+      confirmee:      'confirmed_at',
+      expediee:       'shipped_at',
+      livree:         'delivered_at',
+    }[newStatut];
+
+    const { rows: [updated] } = await client.query(
+      `UPDATE commandes SET statut=$1 ${tsField ? `, ${tsField}=NOW()` : ''}
+       WHERE id=$2 RETURNING *`,
+      [newStatut, id]
+    );
+
+    // Remettre le stock si annulation d'une vente déjà confirmée
+    if(newStatut === 'annulee' && cmd.type === 'vente' && cmd.statut !== 'brouilllon'){
+        const { rows: lignes } = await client.query(
+            'SELECT * FROM commandes_lignes WHERE commande_id=$1',[l.produit_id]
+        );
+        for (const l of lignes) {
+            const { rows : [p]} = await client.query(
+                'SELECT stock_actuel FROM produits WHERE id=$1', [l.produit_id]
+            );
+            if(p){
+                await client.query(
+                `INSERT INTO stock_mouvements
+                (produit_id, type, quantite, stock_avant, stock_apres, commande_id, motif, created_by)
+                VALUES ($1, 'entree_retour', $2, $3, $4, $5, 'Annulation commande', $6)`,
+                [l.produit_id, l.quantite, p.stock_actuel, p.stock_actuel + l.quantite, id, userId]
+                );
+            }
+        }
+    }
+    // Historique
+        await client.query(
+        `INSERT INTO commande_historique (commande_id, statut, commentaire, created_by)
+        VALUES ($1, $2, $3, $4)`,
+        [id, newStatut, commentaire || null, userId]
+        );
+    
+        return updated;
+  });
+
+};
+// ── ENREGISTRER PAIEMENT ──────────────────────────────────────
+const enregistrerPaiement = async (id, montant, mode) =>{
+    const { rows: [cmd] } = await query('SELECT * FROM commandes WHERE id=$1',[id]);
+    if(!cmd) { const e = new Error('Commande introuvable'); e.statusCode = 404; throw e;}
+
+    const nouveauMontantPaye = parseFloat(cmd.montant_paye) + parseFloat(montant);
+    let paiementStatut = 'partiel';
+    if(nouveauMontantPaye >= parseFloat(cmd.total_ttc)) paiementStatut = 'paye';
+
+    const { rows: [updated] } = await query(
+        `UPDATE commandes
+        SET montant_paye=$1, paiement_statut=$2, paiement_mode=$3
+        WHERE id=$4 RETURNING *`,
+        [nouveauMontantPaye, paiementStatut, mode, id]
+        );
+    return updated;
+};
+
+// ── ANNULER ───────────────────────────────────────────────────
+const annuler = async (id, userId) => {
+  return updateStatut(id, 'annulee', 'Annulation manuelle', userId);
+};
+
+// ── STATS ─────────────────────────────────────────────────────
+const getStats = async () => {
+  const { rows } = await query(`
+    SELECT
+      statut,
+      COUNT(*)            AS nb,
+      SUM(total_ttc)      AS ca_total
+    FROM commandes
+    WHERE created_at >= NOW() - INTERVAL '30 days'
+    GROUP BY statut
+    ORDER BY nb DESC
+  `);
+  return rows;
+};
+
+module.exports = {
+  getAll, getOne, create, update,
+  updateStatut, enregistrerPaiement, annuler, getStats,
+};
