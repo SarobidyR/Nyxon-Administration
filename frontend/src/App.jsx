@@ -37,7 +37,7 @@ const CategoriesList = lazy(() => import('./pages/categories/CategoriesList'));
 
 // ── Commandes ────────────────────────────────────────────────
 const CommandesList = lazy(()=> import('./pages/commandes/CommandesList'));
-const CommandeDetail = lazy(()=> import('./pages/commandes/CommandesDetail'));
+const CommandeDetail = lazy(()=> import('./pages/commandes/CommandeDetail'));
 
 // ── Stock ────────────────────────────────────────────────
 const StockMouvements = lazy(()=> import('./pages/stock/StockMouvements'));
