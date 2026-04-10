@@ -13,3 +13,7 @@ backend/src/
     ├── fournisseurs/ routes · service · controller (CRUD)
     ├── marques/    routes · service · controller   (CRUD + soft delete si produits liés)
     └── categories/ routes · service · controller   (CRUD + arbre hiérarchique + anti-cycle)
+
+
+
+    
