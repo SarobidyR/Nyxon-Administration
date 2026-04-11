@@ -7,7 +7,7 @@ const helmet   = require('helmet');
 const morgan   = require('morgan');
 
 const { connectDB }       = require('./config/db');
-const errorHandler    les     = require('./middlewares/errorHandler');
+const errorHandler         = require('./middlewares/errorHandler');
 
 const authRoutes         = require('./modules/auth/routes');
 const produitsRoutes     = require('./modules/produits/routes');
