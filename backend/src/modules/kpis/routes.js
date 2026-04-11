@@ -1,77 +1,77 @@
 const router = require('express').Router();
 const { query } = require('../../config/db');
 const { authenticate, authorize } = require('../../middlewares/auth');
- 
+
 router.use(authenticate);
 router.use(authorize('manager'));
 
 // ── GET /api/kpis/dashboard ───────────────────────────────────
-  router.get('/dashboard', async (req, res) => {
-    const [tempsReel, topProduits, topClients, evolutionCA, alertesStock] = await Promise.all([
-  
-      query('SELECT * FROM v_kpi_temps_reel'),
-  
-      query(`
-        SELECT p.id, p.nom, p.reference,
-              SUM(cl.quantite) AS qte_vendue,
-              SUM(cl.total_ht) AS ca_ht
-        FROM commande_lignes cl
-        JOIN commandes c ON c.id = cl.commande_id
-        JOIN produits  p ON p.id = cl.produit_id
-        WHERE c.statut NOT IN ('annulee','remboursee')
-          AND DATE_TRUNC('month', c.created_at) = DATE_TRUNC('month', NOW())
-        GROUP BY p.id, p.nom, p.reference
-        ORDER BY qte_vendue DESC LIMIT 5
-      `),
-  
-      query(`
-        SELECT cli.id,
-              COALESCE(cli.raison_sociale, cli.prenom || ' ' || cli.nom) AS nom_complet,
-              COUNT(c.id) AS nb_commandes, SUM(c.total_ttc) AS ca_total
-        FROM commandes c
-        JOIN clients cli ON cli.id = c.client_id
-        WHERE c.statut NOT IN ('annulee','remboursee')
-          AND DATE_TRUNC('month', c.created_at) = DATE_TRUNC('month', NOW())
-        GROUP BY cli.id, nom_complet
-        ORDER BY ca_total DESC LIMIT 5
-      `),
-  
-      query(`
-        SELECT DATE_TRUNC('day', created_at)::DATE AS jour,
-              COUNT(*) AS nb_commandes, SUM(total_ttc) AS ca_ttc
-        FROM commandes
-        WHERE created_at >= NOW() - INTERVAL '7 days'
-          AND statut NOT IN ('annulee','remboursee')
-        GROUP BY jour ORDER BY jour ASC
-      `),
-  
-      query(`
-        SELECT id, nom, reference, stock_actuel, stock_minimum,
-              CASE WHEN stock_actuel <= 0 THEN 'rupture' ELSE 'alerte' END AS etat
-        FROM produits
-        WHERE statut = 'actif' AND stock_actuel <= stock_minimum
-        ORDER BY stock_actuel ASC LIMIT 10
-      `),
-    ]);
-  
-    res.json({
-      success: true,
-      data: {
-        kpis:         tempsReel.rows[0] || {},
-        topProduits:  topProduits.rows,
-        topClients:   topClients.rows,
-        evolutionCA:  evolutionCA.rows,
-        alertesStock: alertesStock.rows,
-      },
-    });
+router.get('/dashboard', async (req, res) => {
+  const [tempsReel, topProduits, topClients, evolutionCA, alertesStock] = await Promise.all([
+
+    query('SELECT * FROM v_kpi_temps_reel'),
+
+    query(`
+      SELECT p.id, p.nom, p.reference,
+             SUM(cl.quantite) AS qte_vendue,
+             SUM(cl.total_ht) AS ca_ht
+      FROM commande_lignes cl
+      JOIN commandes c ON c.id = cl.commande_id
+      JOIN produits  p ON p.id = cl.produit_id
+      WHERE c.statut NOT IN ('annulee','remboursee')
+        AND DATE_TRUNC('month', c.created_at) = DATE_TRUNC('month', NOW())
+      GROUP BY p.id, p.nom, p.reference
+      ORDER BY qte_vendue DESC LIMIT 5
+    `),
+
+    query(`
+      SELECT cli.id,
+             COALESCE(cli.raison_sociale, cli.prenom || ' ' || cli.nom) AS nom_complet,
+             COUNT(c.id) AS nb_commandes, SUM(c.total_ttc) AS ca_total
+      FROM commandes c
+      JOIN clients cli ON cli.id = c.client_id
+      WHERE c.statut NOT IN ('annulee','remboursee')
+        AND DATE_TRUNC('month', c.created_at) = DATE_TRUNC('month', NOW())
+      GROUP BY cli.id, nom_complet
+      ORDER BY ca_total DESC LIMIT 5
+    `),
+
+    query(`
+      SELECT DATE_TRUNC('day', created_at)::DATE AS jour,
+             COUNT(*) AS nb_commandes, SUM(total_ttc) AS ca_ttc
+      FROM commandes
+      WHERE created_at >= NOW() - INTERVAL '7 days'
+        AND statut NOT IN ('annulee','remboursee')
+      GROUP BY jour ORDER BY jour ASC
+    `),
+
+    query(`
+      SELECT id, nom, reference, stock_actuel, stock_minimum,
+             CASE WHEN stock_actuel <= 0 THEN 'rupture' ELSE 'alerte' END AS etat
+      FROM produits
+      WHERE statut = 'actif' AND stock_actuel <= stock_minimum
+      ORDER BY stock_actuel ASC LIMIT 10
+    `),
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      kpis:         tempsReel.rows[0] || {},
+      topProduits:  topProduits.rows,
+      topClients:   topClients.rows,
+      evolutionCA:  evolutionCA.rows,
+      alertesStock: alertesStock.rows,
+    },
   });
+});
 
 // ── GET /api/kpis/ventes?periode=mois|annee|custom&debut=&fin=
 router.get('/ventes', async (req, res) => {
   const { periode = 'mois', debut, fin } = req.query;
   const now = new Date();
   let dateDebut, dateFin;
- 
+
   if (periode === 'annee') {
     dateDebut = new Date(now.getFullYear(), 0, 1);
     dateFin   = new Date(now.getFullYear(), 11, 31);
@@ -82,9 +82,9 @@ router.get('/ventes', async (req, res) => {
     dateDebut = new Date(now.getFullYear(), now.getMonth(), 1);
     dateFin   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   }
- 
+
   const [resume, parJour, parCategorie, parStatut] = await Promise.all([
- 
+
     query(`
       SELECT
         COUNT(*)                    AS nb_commandes,
@@ -97,7 +97,7 @@ router.get('/ventes', async (req, res) => {
       WHERE created_at BETWEEN $1 AND $2
         AND statut NOT IN ('annulee','remboursee')
     `, [dateDebut, dateFin]),
- 
+
     query(`
       SELECT DATE_TRUNC('day', created_at)::DATE AS jour,
              COUNT(*) AS nb_commandes, SUM(total_ttc) AS ca_ttc, SUM(total_ht) AS ca_ht
@@ -106,7 +106,7 @@ router.get('/ventes', async (req, res) => {
         AND statut NOT IN ('annulee','remboursee')
       GROUP BY jour ORDER BY jour ASC
     `, [dateDebut, dateFin]),
- 
+
     query(`
       SELECT COALESCE(cat.nom, 'Sans catégorie') AS categorie,
              SUM(cl.quantite) AS qte_vendue,
@@ -120,14 +120,14 @@ router.get('/ventes', async (req, res) => {
         AND c.statut NOT IN ('annulee','remboursee')
       GROUP BY categorie ORDER BY ca_ht DESC
     `, [dateDebut, dateFin]),
- 
+
     query(`
       SELECT statut, COUNT(*) AS nb, COALESCE(SUM(total_ttc),0) AS ca
       FROM commandes WHERE created_at BETWEEN $1 AND $2
       GROUP BY statut ORDER BY nb DESC
     `, [dateDebut, dateFin]),
   ]);
- 
+
   res.json({
     success: true,
     data: {
@@ -180,27 +180,27 @@ router.get('/top-clients', async (req, res) => {
 });
 
 // ── GET /api/kpis/previsions ──────────────────────────────────
-router.get('/previsions', async(req, res) => {
+router.get('/previsions', async (req, res) => {
   const { rows: historique } = await query(`
     SELECT DATE_TRUNC('month', c.created_at)::DATE AS mois,
            SUM(cl.quantite)    AS qte_totale,
            SUM(cl.total_ttc)   AS ca_ttc,
            COUNT(DISTINCT c.id) AS nb_commandes
     FROM commandes c
-    JOIN commandes_lignes cl ON cl.commandes_id = c.id
+    JOIN commande_lignes cl ON cl.commande_id = c.id
     WHERE c.statut NOT IN ('annulee','remboursee')
       AND c.created_at >= NOW() - INTERVAL '6 months'
     GROUP BY mois ORDER BY mois ASC
-    `);
-  
-    const n = historique.length;
+  `);
+
+  const n = historique.length;
   let previsions = [];
- 
+
   if (n >= 2) {
     const xs    = historique.map((_, i) => i);
     const ysCA  = historique.map((r) => parseFloat(r.ca_ttc)    || 0);
     const ysQte = historique.map((r) => parseFloat(r.qte_totale) || 0);
- 
+
     const regression = (xs, ys) => {
       const sumX  = xs.reduce((a, b) => a + b, 0);
       const sumY  = ys.reduce((a, b) => a + b, 0);
@@ -213,10 +213,10 @@ router.get('/previsions', async(req, res) => {
         b: (sumY - ((n * sumXY - sumX * sumY) / denom) * sumX) / n,
       };
     };
- 
+
     const regCA  = regression(xs, ysCA);
     const regQte = regression(xs, ysQte);
- 
+
     for (let i = 1; i <= 3; i++) {
       const x = n - 1 + i;
       const d = new Date();
@@ -229,7 +229,7 @@ router.get('/previsions', async(req, res) => {
       });
     }
   }
- 
+
   res.json({ success: true, data: { historique, previsions } });
 });
 

@@ -18,6 +18,8 @@ const categoriesRoutes   = require('./modules/categories/routes');
 const commandesRoutes    = require('./modules/commandes/routes');
 const stockRoutes        = require('./modules/stock/routes');
 const kpisRoutes         = require('./modules/kpis/routes');
+const adsRoutes          = require('./modules/ads/routes');
+const recusRoutes        = require('./modules/recus/routes');
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -47,6 +49,8 @@ app.use('/api/categories',   categoriesRoutes);
 app.use('/api/commandes',    commandesRoutes);
 app.use('/api/stock',        stockRoutes);
 app.use('/api/kpis',         kpisRoutes);
+app.use('/api/ads',          adsRoutes);
+app.use('/api/recus',        recusRoutes);
 
 app.use((req, res) => res.status(404).json({
   success: false, message: `Route ${req.method} ${req.path} introuvable`,
