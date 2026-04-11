@@ -42,6 +42,15 @@ const CommandeDetail = lazy(()=> import('./pages/commandes/CommandeDetail'));
 // ── Stock ────────────────────────────────────────────────
 const StockMouvements = lazy(()=> import('./pages/stock/StockMouvements'));
 
+// ── KPI ────────────────────────────────────────────────
+const KpisPage   = lazy(() => import('./pages/kpis/KpisPage'));
+
+// ── AdsPage ────────────────────────────────────────────────
+const AdsPage    = lazy(() => import('./pages/ads/AdsPage'));
+
+// ── ReçuDetail ────────────────────────────────────────────────
+const RecuDetail = lazy(() => import('./pages/recus/RecuDetail'));
+
 // ── Hiérarchie des rôles (même ordre que le backend) ─────────
 const ROLE_HIERARCHY = {
   superadmin: 5,
@@ -170,6 +179,16 @@ export default function App() {
                 <Route element={<RoleGuard role="manager" />}>
                   <Route path="stock" element={<StockMouvements />} />
                 </Route>
+
+                 {/* KPIs */}
+                 <Route path="kpis"             element={<KpisPage />} />
+                 
+                 {/* Ads */}
+                 <Route path="ads"              element={<AdsPage />} />
+
+                 {/* Recus */}
+                 <Route path="recus/:commandeId" element={<RecuDetail />} />
+
             </Route>{/* fin Layout */}
           </Route>{/* fin RequireAuth */}
 
