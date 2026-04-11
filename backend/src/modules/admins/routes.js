@@ -128,3 +128,62 @@ router.patch('/users/:id/statut', [
   res.json({ success:true, message:`Statut → ${req.body.statut}`, data:rows[0] });
 });
 
+// ── DELETE /api/admin/users/:id ───────────────────────────────
+router.delete('/users/:id', authorize('superadmin'), param('id').isUUID(), validate, async (req, res) => {
+  if (req.params.id === req.user.id) {
+    return res.status(400).json({ success:false, message:'Impossible de supprimer son propre compte' });
+  }
+  await query('DELETE FROM refresh_tokens WHERE user_id=$1', [req.params.id]);
+  await query('DELETE FROM users WHERE id=$1', [req.params.id]);
+  res.json({ success:true, message:'Utilisateur supprimé' });
+});
+
+// ── GET /api/admin/stats ──────────────────────────────────────
+router.get('/stats', authorize('superadmin'), async (req, res) => {
+  const [users, activite, config] = await Promise.all([
+    query(`
+      SELECT
+        COUNT(*)                                          AS total,
+        COUNT(*) FILTER (WHERE statut='actif')            AS actifs,
+        COUNT(*) FILTER (WHERE statut='suspendu')         AS suspendus,
+        COUNT(*) FILTER (WHERE role='superadmin')         AS superadmins,
+        COUNT(*) FILTER (WHERE role='admin')              AS admins,
+        COUNT(*) FILTER (WHERE role='manager')            AS managers,
+        COUNT(*) FILTER (WHERE role='vendeur')            AS vendeurs,
+        COUNT(*) FILTER (WHERE role='lecteur')            AS lecteurs,
+        COUNT(*) FILTER (WHERE derniere_connexion > NOW()-INTERVAL '7 days') AS actifs_7j
+      FROM users
+    `),
+    query(`
+      SELECT
+        (SELECT COUNT(*) FROM commandes WHERE created_at > NOW()-INTERVAL '30 days') AS cmds_30j,
+        (SELECT COUNT(*) FROM produits)  AS nb_produits,
+        (SELECT COUNT(*) FROM clients)   AS nb_clients,
+        (SELECT COUNT(*) FROM stock_mouvements WHERE created_at > NOW()-INTERVAL '30 days') AS mvts_30j
+    `),
+    query('SELECT cle, valeur FROM config_boutique ORDER BY cle'),
+  ]);
+ 
+  res.json({
+    success: true,
+    data: {
+      users:    users.rows[0],
+      activite: activite.rows[0],
+      config:   config.rows,
+    },
+  });
+});
+
+// ── PUT /api/admin/config ─────────────────────────────────────
+router.put('/config', authorize('superadmin'), async (req, res) => {
+  const updates = req.body; // { cle: valeur, ... }
+  for (const [cle, valeur] of Object.entries(updates)) {
+    await query(
+      `UPDATE config_boutique SET valeur=$1, updated_by=$2 WHERE cle=$3`,
+      [valeur, req.user.id, cle]
+    );
+  }
+  res.json({ success:true, message:'Configuration sauvegardée' });
+});
+ 
+module.exports = router;
