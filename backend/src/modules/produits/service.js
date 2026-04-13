@@ -101,9 +101,39 @@ const updateStatut = async (id, statut) => {
   return rows[0];
 };
 
-const remove = async (id) => {
-  const { rows } = await query('DELETE FROM produits WHERE id=$1 RETURNING id', [id]);
-  if (!rows[0]) { const e = new Error('Produit introuvable'); e.statusCode = 404; throw e; }
+const remove = async (id, userId, motif) => {
+  const { rows } = await query(
+    `UPDATE produits SET deleted_at=NOW(), deleted_by=$2, delete_motif=$3, statut='discontinue'
+     WHERE id=$1 AND deleted_at IS NULL RETURNING id, nom`,
+    [id, userId || null, motif || null]
+  );
+  if (!rows[0]) { const e = new Error('Produit introuvable ou déjà archivé'); e.statusCode = 404; throw e; }
+  return rows[0];
+};
+
+const restore = async (id) => {
+  const { rows } = await query(
+    `UPDATE produits SET deleted_at=NULL, deleted_by=NULL, delete_motif=NULL, statut='actif'
+     WHERE id=$1 AND deleted_at IS NOT NULL RETURNING id, nom, statut`,
+    [id]
+  );
+  if (!rows[0]) { const e = new Error('Produit introuvable ou non archivé'); e.statusCode = 404; throw e; }
+  return rows[0];
+};
+
+const getArchives = async ({ search, page = 1, limit = 20 }) => {
+  const offset = (page - 1) * limit;
+  const conds = ['p.deleted_at IS NOT NULL']; const params = []; let i = 1;
+  if (search) { conds.push(`(p.nom ILIKE $${i} OR p.reference ILIKE $${i})`); params.push(`%${search}%`); i++; }
+  const where = conds.join(' AND ');
+  const { rows: data } = await query(
+    `SELECT p.*, u.prenom || ' ' || u.nom AS supprime_par_nom
+     FROM produits p LEFT JOIN users u ON u.id = p.deleted_by
+     WHERE ${where} ORDER BY p.deleted_at DESC LIMIT $${i} OFFSET $${i+1}`,
+    [...params, limit, offset]
+  );
+  const { rows: cnt } = await query(`SELECT COUNT(*) FROM produits p WHERE ${where}`, params);
+  return { data, total: parseInt(cnt[0].count), page: +page, limit: +limit };
 };
 
 const getAlertes = async () => {
@@ -117,4 +147,4 @@ const getAlertes = async () => {
   return rows;
 };
 
-module.exports = { getAll, getOne, create, update, updateStatut, remove, getAlertes };
+module.exports = { getAll, getOne, create, update, updateStatut, remove, restore, getArchives, getAlertes };

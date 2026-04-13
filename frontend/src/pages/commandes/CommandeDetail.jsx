@@ -180,7 +180,7 @@ export default function CommandeDetail() {
         <div className="flex items-center gap-2">
           {canAnnuler && (
             <button onClick={handleAnnuler} className="btn-secondary text-red-600 hover:bg-red-50 border-red-200">
-              <X size={15} /> Annuler
+              <X size={15} /> Annuler cette commande ?
             </button>
           )}
           {canTransit && (

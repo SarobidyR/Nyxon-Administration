@@ -62,14 +62,22 @@ export default function Login() {
         {/* Contenu branding */}
         <div className="relative z-10 text-center">
           {/* Logo */}
-          <div className="inline-flex items-center justify-center
+          {/* <div className="inline-flex items-center justify-center
                           w-20 h-20 rounded-2xl bg-sky-500 mb-8
                           shadow-lg shadow-sky-500/30">
             <span className="text-3xl font-black text-white tracking-tighter">N</span>
-          </div>
+          </div> */}
+          <div className="w-50 h-50 overflow-hidden flex items-center justify-center flex-shrink-0">
+            <img 
+              src="/icone SITE blanc0.5.svg"
+              alt="Logo" 
+              className="w-full h-full object-cover" 
+            />
+          </div> 
+
 
           <h1 className="text-4xl font-bold text-white tracking-tight mb-3">
-            Nyxon
+            Nyxon Administration
           </h1>
           <p className="text-gray-400 text-lg mb-12">
             Gestion de boutique & stock

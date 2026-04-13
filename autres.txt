@@ -19,3 +19,6 @@ backend/src/
 DETAILS : CORRECTION
 17/04/2026
 NE PAS REELLEMENT SUPPRIMER LE PRODUIT MAIS DECALER VERS UNE AUTRE TABLE, ou faire un autre un état
+
+psql -U nyxon_admin -d nyxon_db -f D:\JOB\NYXON\Nyxon_Administration\Nyxon-Administration\db\migrations\003_softdelete_priorite.sql
+nyxon@2026!

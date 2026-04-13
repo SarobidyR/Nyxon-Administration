@@ -127,16 +127,40 @@ export default function Sidebar() {
       `}
     >
       {/* ── Logo ─────────────────────────────────────────────── */}
-      <div className={`
+      {/* <div className={`
         flex items-center h-16 flex-shrink-0 border-b border-white/5 px-4
         ${sidebarCollapsed ? 'justify-center' : 'gap-3'}
       `}>
         <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center flex-shrink-0">
           <span className="text-sm font-black text-white">N</span>
+
         </div>
+        <link rel="icon" type="image/svg+xml" href="/icone SITE0.5.svg" /> 
+
+
         {!sidebarCollapsed && (
           <span className="text-white font-semibold text-base tracking-tight">
-            Nyxon
+            Nyxon App
+          </span>
+        )}
+      </div> */}
+
+
+      <div className={`
+        flex items-center h-16 flex-shrink-0 border-b border-white/5 px-4
+        ${sidebarCollapsed ? 'justify-center' : 'gap-3'}
+      `}>
+        <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+          <img 
+            src="/icone SITE0.5.svg"
+            alt="Logo" 
+            className="w-full h-full object-cover" 
+          />
+        </div> 
+
+        {!sidebarCollapsed && (
+          <span className="text-white font-semibold text-base tracking-tight">
+            Nyxon App
           </span>
         )}
       </div>

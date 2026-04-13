@@ -30,12 +30,16 @@ const CategoriesList  = lazy(() => import('./pages/categories/CategoriesList'));
 // ── Phase 2 : Commandes & Stock ───────────────────────────────
 const CommandesList   = lazy(() => import('./pages/commandes/CommandesList'));
 const CommandeDetail  = lazy(() => import('./pages/commandes/CommandeDetail'));
+// const CommandesForm = lazy(() => import('./pages/commandes/CommandesForm'));
+
+// CommandesForm 
 const StockMouvements = lazy(() => import('./pages/stock/StockMouvements'));
 
 // ── Phase 3 : KPIs, Ads, Reçus ───────────────────────────────
 const KpisPage   = lazy(() => import('./pages/kpis/KpisPage'));
 const AdsPage    = lazy(() => import('./pages/ads/AdsPage'));
 const RecuDetail = lazy(() => import('./pages/recus/RecuDetail'));
+const RecusList     = lazy(() => import('./pages/recus/RecusList'));
 
 // ── Phase 4 : Admin ───────────────────────────────────────────
 const UsersAdmin  = lazy(() => import('./pages/admin/UsersAdmin'));
@@ -114,6 +118,7 @@ export default function App() {
                 </Route>
 
                 {/* Commandes — vendeur+ */}
+                {/* <Route path="commandes/nouveau" element={<CommandesForm />} /> */}
                 <Route path="commandes">
                   <Route index      element={<CommandesList />} />
                   <Route path=":id" element={<CommandeDetail />} />
@@ -122,6 +127,7 @@ export default function App() {
                 {/* Reçus — vendeur+ */}
                 <Route path="recus/:commandeId" element={<RecuDetail />} />
               </Route>
+              <Route path="recus" element={<RecusList />} />
 
               {/* Catalogue & stock — manager+ */}
               <Route element={<RoleGuard role="manager" />}>
