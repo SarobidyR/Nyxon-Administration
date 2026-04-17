@@ -30,16 +30,18 @@ const CategoriesList  = lazy(() => import('./pages/categories/CategoriesList'));
 // ── Phase 2 : Commandes & Stock ───────────────────────────────
 const CommandesList   = lazy(() => import('./pages/commandes/CommandesList'));
 const CommandeDetail  = lazy(() => import('./pages/commandes/CommandeDetail'));
-// const CommandesForm = lazy(() => import('./pages/commandes/CommandesForm'));
-
-// CommandesForm 
 const StockMouvements = lazy(() => import('./pages/stock/StockMouvements'));
 
 // ── Phase 3 : KPIs, Ads, Reçus ───────────────────────────────
 const KpisPage   = lazy(() => import('./pages/kpis/KpisPage'));
 const AdsPage    = lazy(() => import('./pages/ads/AdsPage'));
-const RecuDetail = lazy(() => import('./pages/recus/RecuDetail'));
-const RecusList     = lazy(() => import('./pages/recus/RecusList'));
+const RecuDetail      = lazy(() => import('./pages/recus/RecuDetail'));
+const RecusList       = lazy(() => import('./pages/recus/RecusList'));
+
+// ── Profil & Admin ────────────────────────────────────────────
+const UserProfile     = lazy(() => import('./pages/profile/UserProfile'));
+const UserStatsPage   = lazy(() => import('./pages/admin/UserStatsPage'));
+const ProduitsArchives = lazy(() => import('./pages/produits/ProduitsArchives'));
 
 // ── Phase 4 : Admin ───────────────────────────────────────────
 const UsersAdmin  = lazy(() => import('./pages/admin/UsersAdmin'));
@@ -98,10 +100,14 @@ export default function App() {
               {/* Dashboard — tous */}
               <Route index element={<Dashboard />} />
 
+              {/* Profil — tous les utilisateurs */}
+              <Route path="profile" element={<UserProfile />} />
+
               {/* Produits — lecture : tous, édition : manager+ */}
               <Route path="produits">
-                <Route index      element={<ProduitsList />} />
-                <Route path=":id" element={<ProduitDetail />} />
+                <Route index           element={<ProduitsList />} />
+                <Route path=":id"      element={<ProduitDetail />} />
+                <Route path="archives" element={<ProduitsArchives />} />
                 <Route element={<RoleGuard role="manager" />}>
                   <Route path="nouveau"  element={<ProduitsForm />} />
                   <Route path=":id/edit" element={<ProduitsForm />} />
@@ -118,16 +124,15 @@ export default function App() {
                 </Route>
 
                 {/* Commandes — vendeur+ */}
-                {/* <Route path="commandes/nouveau" element={<CommandesForm />} /> */}
                 <Route path="commandes">
                   <Route index      element={<CommandesList />} />
                   <Route path=":id" element={<CommandeDetail />} />
                 </Route>
 
                 {/* Reçus — vendeur+ */}
+                <Route path="recus"            element={<RecusList />} />
                 <Route path="recus/:commandeId" element={<RecuDetail />} />
               </Route>
-              <Route path="recus" element={<RecusList />} />
 
               {/* Catalogue & stock — manager+ */}
               <Route element={<RoleGuard role="manager" />}>
@@ -155,7 +160,8 @@ export default function App() {
                 <Route path="settings"       element={<Settings />} />
                 <Route path="admin/users"    element={<UsersAdmin />} />
                 <Route element={<RoleGuard role="superadmin" />}>
-                  <Route path="admin/stats"  element={<AdminStats />} />
+                  <Route path="admin/stats"           element={<AdminStats />} />
+                  <Route path="admin/users/:userId/stats" element={<UserStatsPage />} />
                 </Route>
               </Route>
 

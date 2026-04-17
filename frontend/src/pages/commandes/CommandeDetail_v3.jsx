@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Check, X, CreditCard, Receipt,
+  ArrowLeft, Check, X, CreditCard,
   Package, User, Clock, ChevronRight,
 } from 'lucide-react';
 import api         from '../../api/axios';
@@ -178,19 +178,9 @@ export default function CommandeDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Bouton reçu — visible dès que la commande est confirmée */}
-          {['confirmee','en_preparation','expediee','livree'].includes(commande.statut) && (
-            <button
-              onClick={() => navigate(`/recus/${commande.id}`)}
-              className="btn-secondary"
-              title="Voir / générer le reçu"
-            >
-              <Receipt size={15} /> Reçu
-            </button>
-          )}
           {canAnnuler && (
             <button onClick={handleAnnuler} className="btn-secondary text-red-600 hover:bg-red-50 border-red-200">
-              <X size={15} /> Annuler
+              <X size={15} /> Annuler cette commande ?
             </button>
           )}
           {canTransit && (

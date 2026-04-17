@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Plus, Search, Edit2, Trash2, KeyRound,
-  ShieldCheck, UserX, UserCheck, RefreshCw, Users, BarChart3,
+  ShieldCheck, UserX, UserCheck, RefreshCw, Users,
 } from 'lucide-react';
 import api         from '../../api/axios';
 import useUiStore  from '../../store/uiStore';
@@ -390,16 +390,6 @@ export default function UsersAdmin() {
                       </td>
                       <td>
                         <div className="flex items-center justify-end gap-1">
-                          {/* Stats — superadmin uniquement */}
-                          {isSuperAdmin && (
-                            <button
-                              onClick={() => navigate(`/admin/users/${u.id}/stats`)}
-                              className="btn-ghost p-1.5 text-sky-500 hover:bg-sky-50"
-                              title="Voir les statistiques"
-                            >
-                              <BarChart3 size={14} />
-                            </button>
-                          )}
                           {/* Modifier */}
                           <button
                             onClick={() => { setSelected(u); setModal('edit'); }}

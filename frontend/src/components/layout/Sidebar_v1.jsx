@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Package, Users, Truck, Tag, FolderOpen, UserCircle,
+  LayoutDashboard, Package, Users, Truck, Tag, FolderOpen,
   ShoppingCart, Warehouse, BarChart3, Megaphone, Receipt,
   Settings, ChevronLeft, ChevronRight, LogOut,
 } from 'lucide-react';
@@ -14,14 +14,12 @@ const NAV_SECTIONS = [
     label: 'Principal',
     items: [
       { to: '/',            label: 'Dashboard',     icon: LayoutDashboard, role: null      },
-      { to: '/profile',     label: 'Mon profil',    icon: UserCircle,      role: null      },
     ],
   },
   {
     label: 'Catalogue',
     items: [
       { to: '/produits',     label: 'Produits',      icon: Package,    role: null      },
-      { to: '/produits/archives', label: 'Corbeille',  icon: Package,    role: 'admin'   },
       { to: '/categories',   label: 'Catégories',    icon: FolderOpen, role: 'manager' },
       { to: '/marques',      label: 'Marques',       icon: Tag,        role: 'manager' },
       { to: '/fournisseurs', label: 'Fournisseurs',  icon: Truck,      role: 'manager' },
@@ -32,7 +30,6 @@ const NAV_SECTIONS = [
     items: [
       { to: '/commandes',    label: 'Commandes',     icon: ShoppingCart, role: 'vendeur' },
       { to: '/clients',      label: 'Clients',       icon: Users,        role: 'vendeur' },
-      { to: '/recus',        label: 'Reçus',         icon: Receipt,      role: 'vendeur' },
     ],
   },
   {
@@ -52,9 +49,7 @@ const NAV_SECTIONS = [
   {
     label: 'Administration',
     items: [
-      { to: '/admin/users',  label: 'Utilisateurs',   icon: Settings,   role: 'admin'      },
-      { to: '/admin/stats',  label: 'Stats système',  icon: Settings,   role: 'superadmin' },
-      { to: '/settings',     label: 'Paramètres',     icon: Settings,   role: 'admin'      },
+      { to: '/settings',     label: 'Paramètres',    icon: Settings,   role: 'admin'   },
     ],
   },
 ];

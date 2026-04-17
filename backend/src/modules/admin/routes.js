@@ -13,14 +13,14 @@ router.get('/users', async (req, res) => {
   const { search, role, statut, page = 1, limit = 20 } = req.query;
   const offset = (page - 1) * limit;
   const conds  = ['1=1']; const params = []; let i = 1;
- 
+
   if (search) {
     conds.push(`(nom ILIKE $${i} OR prenom ILIKE $${i} OR email ILIKE $${i})`);
     params.push(`%${search}%`); i++;
   }
   if (role)   { conds.push(`role = $${i}`);   params.push(role);   i++; }
   if (statut) { conds.push(`statut = $${i}`); params.push(statut); i++; }
- 
+
   const where = conds.join(' AND ');
   const { rows: data } = await query(
     `SELECT id, nom, prenom, email, role, statut, derniere_connexion, created_at
@@ -53,12 +53,12 @@ router.post('/users', authorize('superadmin'), [
   body('role').isIn(['admin','manager','vendeur','lecteur']).withMessage('Rôle invalide'),
 ], validate, async (req, res) => {
   const { nom, prenom, email, password, role } = req.body;
- 
+
   const exists = await query('SELECT id FROM users WHERE email=$1', [email]);
   if (exists.rows.length > 0) {
     return res.status(409).json({ success:false, message:'Email déjà utilisé' });
   }
- 
+
   const hash = await bcrypt.hash(password, parseInt(process.env.BCRYPT_ROUNDS)||12);
   const { rows } = await query(
     `INSERT INTO users (nom,prenom,email,password_hash,role)
@@ -80,7 +80,7 @@ router.put('/users/:id', [
 ], validate, async (req, res) => {
   const { id } = req.params;
   const { nom, prenom, email, role, statut } = req.body;
- 
+
   // Empêcher de modifier un superadmin si on n'est pas superadmin
   const { rows:[target] } = await query('SELECT role FROM users WHERE id=$1',[id]);
   if (!target) { const e=new Error('Introuvable'); e.statusCode=404; throw e; }
@@ -91,7 +91,7 @@ router.put('/users/:id', [
   if (id===req.user.id && role==='superadmin' && req.user.role!=='superadmin') {
     return res.status(403).json({ success:false, message:'Auto-promotion interdite' });
   }
- 
+
   const { rows } = await query(
     `UPDATE users SET nom=$1,prenom=$2,email=$3,role=$4,statut=$5
      WHERE id=$6 RETURNING id,nom,prenom,email,role,statut`,
@@ -163,7 +163,7 @@ router.get('/stats', authorize('superadmin'), async (req, res) => {
     `),
     query('SELECT cle, valeur FROM config_boutique ORDER BY cle'),
   ]);
- 
+
   res.json({
     success: true,
     data: {
@@ -185,5 +185,31 @@ router.put('/config', authorize('superadmin'), async (req, res) => {
   }
   res.json({ success:true, message:'Configuration sauvegardée' });
 });
- 
+
+
+// ── GET /api/admin/users/:id/stats ── activité d'un utilisateur ──
+router.get('/users/:id/stats', authorize('superadmin'), param('id').isUUID(), validate, async (req, res) => {
+  const { id } = req.params;
+
+  const [userRes, cmdsRes, mvtsRes, connexions] = await Promise.all([
+    query('SELECT id,nom,prenom,email,role,statut,created_at,derniere_connexion FROM users WHERE id=$1',[id]),
+    query(`SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE statut NOT IN ('annulee','remboursee')) AS actives,
+                  COALESCE(SUM(total_ttc) FILTER (WHERE statut NOT IN ('annulee','remboursee')),0) AS ca_total
+           FROM commandes WHERE vendeur_id=$1`,[id]),
+    query('SELECT COUNT(*) FROM stock_mouvements WHERE created_by=$1',[id]),
+    query(`SELECT DATE_TRUNC('day',created_at)::DATE AS jour, COUNT(*) AS nb
+           FROM commandes WHERE vendeur_id=$1 AND created_at >= NOW()-INTERVAL '30 days'
+           GROUP BY jour ORDER BY jour ASC`,[id]),
+  ]);
+
+  if (!userRes.rows[0]) { const e=new Error('Utilisateur introuvable'); e.statusCode=404; throw e; }
+
+  res.json({ success:true, data:{
+    user:    userRes.rows[0],
+    commandes: cmdsRes.rows[0],
+    mouvements_stock: parseInt(mvtsRes.rows[0].count),
+    activite_30j: connexions.rows,
+  }});
+});
+
 module.exports = router;
