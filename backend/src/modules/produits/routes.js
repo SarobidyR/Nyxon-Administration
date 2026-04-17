@@ -37,7 +37,20 @@ router.patch('/:id/statut', authorize('manager'),
   validate, ctrl.updateStatut
 );
 
-// DELETE /api/produits/:id
-router.delete('/:id', authorize('admin'), param('id').isUUID(), validate, ctrl.remove);
+// GET /api/produits/archives — corbeille
+router.get('/archives', authorize('admin'), ctrl.getArchives);
+
+// PATCH /api/produits/:id/restore — restaurer
+router.patch('/:id/restore', authorize('admin'), param('id').isUUID(), validate, ctrl.restore);
+
+// DELETE /api/produits/:id — soft delete avec motif optionnel
+router.delete('/:id', authorize('admin'),
+  [param('id').isUUID(), body('motif').optional().isString()],
+  validate, ctrl.remove
+);
+
+
+// DELETE /api/produits/:id/permanent — suppression physique (admin, produit déjà archivé)
+router.delete('/:id/permanent', authorize('admin'), param('id').isUUID(), validate, ctrl.hardDelete);
 
 module.exports = router;

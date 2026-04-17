@@ -147,4 +147,20 @@ const getAlertes = async () => {
   return rows;
 };
 
-module.exports = { getAll, getOne, create, update, updateStatut, remove, restore, getArchives, getAlertes };
+
+// Suppression physique définitive (produit déjà archivé obligatoirement)
+const hardDelete = async (id) => {
+  const { rows: [p] } = await query('SELECT id, nom, deleted_at FROM produits WHERE id=$1', [id]);
+  if (!p) { const e = new Error('Produit introuvable'); e.statusCode = 404; throw e; }
+  if (!p.deleted_at) {
+    const e = new Error(`Archivez d'abord le produit avant de le supprimer définitivement`);
+    e.statusCode = 409; throw e;
+  }
+  // Détacher les références dans commande_lignes (null au lieu de delete)
+  await query('UPDATE commande_lignes SET produit_id=NULL WHERE produit_id=$1', [id]);
+  await query('DELETE FROM stock_mouvements WHERE produit_id=$1', [id]);
+  await query('DELETE FROM produits WHERE id=$1', [id]);
+  return { nom: p.nom };
+};
+
+module.exports = { getAll, getOne, create, update, updateStatut, remove, restore, getArchives, getAlertes, hardDelete };
