@@ -110,12 +110,6 @@ export default function CommandeDetail() {
   useEffect(() => { setPageTitle('Commande'); }, [setPageTitle]);
 
   const loadCommande = async () => {
-    // Guard : si l'id n'est pas un UUID valide, ne pas appeler l'API
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!id || !uuidRegex.test(id)) {
-      navigate('/commandes', { replace: true });
-      return;
-    }
     try {
       const { data: res } = await api.get(`/commandes/${id}`);
       setCommande(res.data);

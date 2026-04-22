@@ -10,7 +10,13 @@ const rules = [
   body('nom').trim().notEmpty().withMessage('Nom de catégorie requis'),
   body('slug').optional().trim()
     .matches(/^[a-z0-9-]+$/).withMessage('Slug : minuscules, chiffres et tirets uniquement'),
-  body('parent_id').optional().isUUID().withMessage('parent_id doit être un UUID valide'),
+  body('parent_id').optional({ nullable: true, checkFalsy: true })
+    .custom((val) => {
+      if (!val || val === '' || val === 'null') return true; // racine = pas de parent
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(val)) throw new Error('parent_id doit être un UUID valide');
+      return true;
+    }),
   body('ordre').optional().isInt({ min: 0 }),
 ];
 
@@ -24,13 +30,13 @@ router.get('/tree', ctrl.getTree);
 router.get('/:id', param('id').isUUID(), validate, ctrl.getOne);
 
 // POST /api/categories
-router.post('/', authorize('manager'), rules, validate, ctrl.create);
+router.post('/', authorize('admin'), rules, validate, ctrl.create);
 
 // PUT /api/categories/:id
-router.put('/:id', authorize('manager'), [param('id').isUUID(), ...rules], validate, ctrl.update);
+router.put('/:id', authorize('admin'), [param('id').isUUID(), ...rules], validate, ctrl.update);
 
 // PATCH /api/categories/:id/ordre
-router.patch('/:id/ordre', authorize('manager'),
+router.patch('/:id/ordre', authorize('admin'),
   [param('id').isUUID(), body('ordre').isInt({ min: 0 })], validate, ctrl.updateOrdre
 );
 

@@ -2,7 +2,7 @@ const { query } = require('../../config/db');
 
 const getAll = async ({ search, categorie_id, marque_id, statut, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
-  const conditions = ['1=1'];
+  const conditions = ['p.deleted_at IS NULL'];  // Exclure les produits archivés
   const params = [];
   let i = 1;
 

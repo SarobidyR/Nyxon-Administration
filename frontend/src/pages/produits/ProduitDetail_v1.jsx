@@ -27,8 +27,6 @@ export default function ProduitDetail() {
 
   useEffect(() => {
     const load = async () => {
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!id || !uuidRegex.test(id)) { navigate('/produits', { replace: true }); return; }
       try {
         const { data: res } = await produitsApi.getOne(id);
         setProduit(res.data);

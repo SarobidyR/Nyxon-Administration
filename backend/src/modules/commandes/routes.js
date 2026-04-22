@@ -16,11 +16,17 @@ const ligneRules = [
 ];
 
 const commandeRules = [
-  body('client_id').optional().isUUID(),
+  body('client_id').optional({ nullable:true, checkFalsy:true }).isUUID(),
   body('type').optional().isIn(['vente','precommande','devis']),
   body('remise_pct').optional().isFloat({ min: 0, max: 100 }),
-  body('paiement_mode').optional().isIn(['especes','carte','virement','cheque','mobile_money','autre']),
+  body('frais_livraison').optional().isFloat({ min: 0 }),
+  body('paiement_mode').optional({ nullable:true, checkFalsy:true })
+    .isIn(['especes','carte','virement','cheque','mobile_money','autre']),
   body('notes').optional().isString(),
+  body('priorite').optional().isInt({ min: 1, max: 3 }),
+  body('priorite_motif').optional().isString(),
+  body('date_disponibilite').optional({ nullable:true, checkFalsy:true }).isDate(),
+  body('acompte_verse').optional({ nullable:true, checkFalsy:true }).isFloat({ min: 0 }),
   ...ligneRules,
 ];
 
